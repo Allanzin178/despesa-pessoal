@@ -17,7 +17,11 @@ class Despesa {
                     'Erro na inclusão do registro', 
                     'Erro na gravação, verifique se todos os campos foram preenchidos corretamente!',
                     'danger',
-                    'Voltar e corrigir'
+                    'Volte e tente novamente',
+                    '',
+                    () => {
+                        $('#modalPopup').modal('hide');
+                    }
                 )
                 return false
             }
@@ -27,7 +31,11 @@ class Despesa {
             'Registro inserido com sucesso', 
             'Despesa foi cadastrada com sucesso!',
             'success', 
-            'Voltar'
+            'Voltar',
+            '',
+                () => {
+                    $('#modalPopup').modal('hide');
+                }
         )
         return true
     }
@@ -61,7 +69,7 @@ class Bd {
     }   
 
     editarDespesa(id, novaDespesa){
-        if(!novaDespesa.validarDados()) return
+        if(!novaDespesa.validarDados()) return false
         localStorage.setItem(id, JSON.stringify(novaDespesa))
     }
 
@@ -194,7 +202,11 @@ function carregaListaDespesas(despesas = Array(), filtro = false){
                 'Registro removido com sucesso', 
                 `A despesa ${despesa.descricao} foi removida com sucesso`,
                 'danger',
-                'Fechar'
+                'Fechar',
+                '',
+                () => {
+                    $('#modalPopup').modal('hide');
+                }
             )
         }
         btnRmv.style = 'min-height: 30px; min-width: 40px;'
@@ -221,9 +233,10 @@ function carregaListaDespesas(despesas = Array(), filtro = false){
                 'success', // Estilo do botão
                 'Salvar e fechar', // Conteudo do botão
                 'modal-lg', // Tamanho (opcional)
-                () => { 
-                    bd.editarDespesa(id, form.getFormDespesa()) // Função do botão (opcional)
-                    carregaListaDespesas()
+                () => {
+                    if (bd.editarDespesa(id, form.getFormDespesa()) !== false){
+                        carregaListaDespesas()// Função do botão (opcional)
+                    }
                 } 
             )
 
