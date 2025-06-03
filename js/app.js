@@ -1,4 +1,3 @@
-
 class Despesa {
     constructor(ano, mes, dia, tipo, descricao, valor){
         this.ano = ano
@@ -9,7 +8,7 @@ class Despesa {
         this.valor = valor
     }
 
-    validarDados(){
+    validarDados(remodal = false, antigaDespesa = null){
         for(let i in this){
             if(this[i] == undefined || this[i] == '' || this[i] == null){
                 modalPersonalizado(
@@ -21,6 +20,11 @@ class Despesa {
                     '',
                     () => {
                         $('#modalPopup').modal('hide');
+                        if(remodal !== false){
+                            setTimeout(()=>{
+                                abrirModalFormDespesa(antigaDespesa)
+                            }, 450)
+                        }   
                     }
                 )
                 return false
@@ -28,8 +32,8 @@ class Despesa {
         }
         modalPersonalizado(
             'success', 
-            'Registro inserido com sucesso', 
-            'Despesa foi cadastrada com sucesso!',
+            remodal ? `Registro ${antigaDespesa.descricao} atualizado com sucesso` : 'Registro inserido com sucesso', 
+            remodal ? `Despesa foi atualizada com sucesso!` : 'Despesa foi inserida com sucesso',
             'success', 
             'Voltar',
             '',
@@ -68,9 +72,9 @@ class Bd {
         localStorage.setItem(this.id, JSON.stringify(d))
     }   
 
-    editarDespesa(id, novaDespesa){
-        if(!novaDespesa.validarDados()) return false
-        localStorage.setItem(id, JSON.stringify(novaDespesa))
+    editarDespesa(novaDespesa, antigaDespesa){
+        if(!novaDespesa.validarDados(true, antigaDespesa)) return false
+        localStorage.setItem(antigaDespesa.id, JSON.stringify(novaDespesa))
     }
 
     recuperarTodosRegistros(){
@@ -104,11 +108,13 @@ class Bd {
                 // console.log(despesa.dia, d.dia) // para debug
                 return despesa.dia == d.dia}
             )
-        } 
+        }
 
         //tipo
         if(despesa.tipo != ''){
-            despesas = despesas.filter(d => despesa.tipo == d.tipo)
+            despesas = despesas.filter(d => {
+                return despesa.tipo == d.tipo
+            })
         }
 
         //descricao
@@ -118,7 +124,9 @@ class Bd {
 
         //valor
         if(despesa.valor != '') {
-            despesas = despesas.filter(d => despesa.valor == d.valor)
+            despesas = despesas.filter(d => {
+                return despesa.valor == d.valor
+            })
         }
         return despesas
     }
@@ -139,146 +147,26 @@ class FormDespesas{
     }
 
     getDespesa(){
+        let valorString = this.valor.value
+        if(valorString !== ''){
+            valorString = new Intl.NumberFormat('pt-br', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                }).format(valorString)
+            valorString = valorString.replace(',', '.')
+            valorString = valorString.replace(/\.(?=\d{3}(?:[,.]))/g, '')
+        }
+
         let despesa = new Despesa(
             this.ano.value,
             this.mes.value,
             this.dia.value,
             this.tipo.value,
             this.descricao.value,
-            this.valor.value
+            valorString
         )
         return despesa
     }
-}
-
-let bd = new Bd()
-
-function cadastrarDespesa() {
-    let fd = new FormDespesas()
-    bd.gravar(fd.getDespesa())
-}
-
-function carregaListaDespesas(despesas = Array(), filtro = false){
-    if(despesas.length == 0 && filtro == false){
-        despesas = bd.recuperarTodosRegistros()
-    }
-    let listaDespesas = document.getElementById('listaDespesas')
-    listaDespesas.innerHTML = ''
-
-    despesas.forEach(despesa => {
-        let row = listaDespesas.insertRow()
-
-        row.insertCell(0).textContent = `${despesa.dia}/${despesa.mes}/${despesa.ano}`
-
-        switch(despesa.tipo){
-            case '1': despesa.tipo = 'Alimentação'
-                break 
-            case '2': despesa.tipo = 'Educação'
-                break 
-            case '3': despesa.tipo = 'Lazer'
-                break 
-            case '4': despesa.tipo = 'Saúde'
-                break 
-            case '5': despesa.tipo = 'Transporte'
-                break 
-        }
-
-        row.insertCell(1).textContent = despesa.descricao
-        row.insertCell(2).textContent = despesa.tipo
-        row.insertCell(3).textContent = `R$ ${despesa.valor}`
-
-        // Botão de remover
-        let btnRmv = document.createElement('button')
-        btnRmv.className = 'btn btn-danger'
-        btnRmv.innerHTML = '<i class="fas fa-times"></i>'
-        btnRmv.id = `id_rmv_despesa_${despesa.id}`
-        // Evento de clique
-        btnRmv.onclick = function(){
-            let id = this.id.replace('id_rmv_despesa_', "")
-            bd.remover(id)
-            carregaListaDespesas()
-            modalPersonalizado(
-                'success', 
-                'Registro removido com sucesso', 
-                `A despesa ${despesa.descricao} foi removida com sucesso`,
-                'danger',
-                'Fechar',
-                '',
-                () => {
-                    $('#modalPopup').modal('hide');
-                }
-            )
-        }
-        btnRmv.style = 'min-height: 30px; min-width: 40px;'
-
-        // Botão de editar
-        let btnEdit = document.createElement('button')
-        btnEdit.className = 'btn btn-success'
-        btnEdit.innerHTML = '<i class="fas fa-pen fa-sm"></i>'
-        btnEdit.id = `id_edit_despesa_${despesa.id}`
-
-        // Evento de clique
-        btnEdit.onclick = function(){
-            // Recupera o id da despesa
-            let id = this.id.replace('id_edit_despesa_', "")
-
-            // Cria um formulario igual o de busca
-            let form = new CriaForm(despesa)
-
-            // Cria o modal
-            modalPersonalizado(
-                'primary', // Estilo do titulo
-                `Editando despesa de ${despesa.descricao} (${despesa.dia}/${despesa.mes}/${despesa.ano})`, // Conteudo do titulo
-                `${form.getDivInicial().outerHTML}`, // Conteudo do body (aqui no caso é o formulario) (É passado como innerHtml)
-                'success', // Estilo do botão
-                'Salvar e fechar', // Conteudo do botão
-                'modal-lg', // Tamanho (opcional)
-                () => {
-                    if (bd.editarDespesa(id, form.getFormDespesa()) !== false){
-                        carregaListaDespesas()// Função do botão (opcional)
-                    }
-                } 
-            )
-
-            document.getElementById(`dia_${despesa.id}`).value = despesa.dia
-            document.getElementById(`mes_${despesa.id}`).value = despesa.mes
-            document.getElementById(`ano_${despesa.id}`).value = despesa.ano
-            document.getElementById(`tipo_${despesa.id}`).value = formatarTipo(despesa.tipo)
-            document.getElementById(`descricao_${despesa.id}`).value = despesa.descricao
-            document.getElementById(`valor_${despesa.id}`).value = despesa.valor
-        }
-        btnEdit.style = 'margin-right: 10px; min-height: 30px; min-width: 40px;'
-        let botoes = row.insertCell(4)
-        botoes.append(btnEdit)
-        botoes.append(btnRmv)
-        
-    })
-}
-
-function pesquisarDespesa(){
-    let fd = new FormDespesas
-    let despesa = fd.getDespesa()
-    let despesasFiltradas = bd.pesquisarDespesa(despesa)
-    carregaListaDespesas(despesasFiltradas, true)
-}
-
-function modalPersonalizado(styleModal = 'danger', titleModal, bodyModal, styleBtnModal, btnModal, modalAdds = '', btnFunction = undefined){
-    let modalTitle = document.getElementById('modal-title')
-    let modalTitleDiv = document.getElementById('modal-title-div')
-    let modalBody = document.getElementById('modal-body')
-    let modalButton = document.getElementById('modal-button')
-    let modalInner = document.getElementById('modal-inner')
-
-    modalInner.className = `modal-dialog ${modalAdds}`
-    modalTitleDiv.className = `modal-header text-${styleModal}`
-    modalTitle.textContent = titleModal
-    modalBody.innerHTML = bodyModal
-    modalButton.className = `btn btn-${styleBtnModal}`
-    modalButton.textContent = btnModal
-    modalButton.onclick = btnFunction
-  
-
-    $('#modalPopup').modal('show')
 }
 
 class CriaForm{
@@ -351,7 +239,7 @@ class CriaForm{
         colDescricao.appendChild(this.criarInput(this.idDescricao, 'text', 'Descrição'))
 
         colValor.appendChild(this.criarLabel(this.idValor, 'Valor'))
-        colValor.appendChild(this.criarInput(this.idValor, 'text', 'Valor'))
+        colValor.appendChild(this.criarInput(this.idValor, 'text', 'Valor', 'R$'))
 
         row2.appendChild(colDescricao)
         row2.appendChild(colValor)
@@ -379,13 +267,30 @@ class CriaForm{
         return label
     }
 
-    criarInput(id, type, placeholder){
+    criarInput(id, type, placeholder, prefixo = false){
         let input = document.createElement('input')
+        let inputGroup = document.createElement('div')
+        inputGroup.className = 'input-group'
+
         input.setAttribute('placeholder', placeholder)
         input.className = 'form-control'
         input.type = type
         input.id = id
-        return input
+
+        if(prefixo !== false){
+            let inputPrepend = document.createElement('div')
+            let inputText = document.createElement('div')
+            inputPrepend.className = 'input-group-prepend'
+            inputText.className = 'input-group-text'
+            inputText.innerHTML = prefixo
+
+            inputPrepend.appendChild(inputText)
+            inputGroup.appendChild(inputPrepend)
+        }
+
+        inputGroup.appendChild(input)
+
+        return inputGroup
     }
     
     getDivInicial(){
@@ -393,16 +298,134 @@ class CriaForm{
     }
 
     getFormDespesa(){
+        let valorString = document.getElementById(this.idValor).value
+        valorString = new Intl.NumberFormat('pt-br', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(valorString)
+        valorString = valorString.replace(',', '.')
+        valorString = valorString.replace(/\.(?=\d{3}(?:[.,]))/g, "")
+
         let despesa = new Despesa(
             document.getElementById(this.idAno).value,
             document.getElementById(this.idMes).value,
             document.getElementById(this.idDia).value,
             document.getElementById(this.idTipo).value,
             document.getElementById(this.idDescricao).value,
-            document.getElementById(this.idValor).value
+            valorString
         )
         return despesa
     }
+}
+
+let bd = new Bd()
+
+function cadastrarDespesa() {
+    let fd = new FormDespesas()
+    bd.gravar(fd.getDespesa())
+}
+
+function carregaListaDespesas(despesas = Array(), filtro = false){
+    if(despesas.length == 0 && filtro == false){
+        despesas = bd.recuperarTodosRegistros()
+    }
+    let listaDespesas = document.getElementById('listaDespesas')
+    listaDespesas.innerHTML = ''
+
+    despesas.forEach(despesa => {
+        let row = listaDespesas.insertRow()
+
+        row.insertCell(0).textContent = `${despesa.dia}/${despesa.mes}/${despesa.ano}`
+
+        switch(despesa.tipo){
+            case '1': despesa.tipo = 'Alimentação'
+                break 
+            case '2': despesa.tipo = 'Educação'
+                break 
+            case '3': despesa.tipo = 'Lazer'
+                break 
+            case '4': despesa.tipo = 'Saúde'
+                break 
+            case '5': despesa.tipo = 'Transporte'
+                break 
+        }
+
+        row.insertCell(1).textContent = despesa.descricao
+        row.insertCell(2).textContent = despesa.tipo
+        row.insertCell(3).textContent = `R$ ${new Intl.NumberFormat('pt-br', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+            }).format(despesa.valor)}`
+
+        // Botão de remover
+        let btnRmv = document.createElement('button')
+        btnRmv.className = 'btn btn-danger'
+        btnRmv.innerHTML = '<i class="fas fa-times"></i>'
+        btnRmv.id = `id_rmv_despesa_${despesa.id}`
+        // Evento de clique
+        btnRmv.onclick = function(){
+            let id = this.id.replace('id_rmv_despesa_', "")
+            bd.remover(id)
+            carregaListaDespesas()
+            modalPersonalizado(
+                'success', 
+                'Registro removido com sucesso', 
+                `A despesa ${despesa.descricao} foi removida com sucesso`,
+                'danger',
+                'Fechar',
+                '',
+                () => {
+                    $('#modalPopup').modal('hide');
+                }
+            )
+        }
+        btnRmv.style = 'min-height: 30px; min-width: 40px;'
+
+        // Botão de editar
+        let btnEdit = document.createElement('button')
+        btnEdit.className = 'btn btn-success'
+        btnEdit.innerHTML = '<i class="fas fa-pen fa-sm"></i>'
+        btnEdit.id = `id_edit_despesa_${despesa.id}`
+
+        
+        // Evento de clique
+        btnEdit.onclick = function(){
+            abrirModalFormDespesa(despesa)
+        }
+
+        btnEdit.style = 'margin-right: 10px; min-height: 30px; min-width: 40px;'
+        let botoes = row.insertCell(4)
+        botoes.append(btnEdit)
+        botoes.append(btnRmv)
+        
+    })
+}
+
+function pesquisarDespesa(){
+    let fd = new FormDespesas
+    let despesa = fd.getDespesa()
+    let despesasFiltradas = bd.pesquisarDespesa(despesa)
+    console.log(despesa)
+    carregaListaDespesas(despesasFiltradas, true)
+}
+
+function modalPersonalizado(styleModal = 'danger', titleModal, bodyModal, styleBtnModal, btnModal, modalAdds = '', btnFunction = undefined){
+    let modalTitle = document.getElementById('modal-title')
+    let modalTitleDiv = document.getElementById('modal-title-div')
+    let modalBody = document.getElementById('modal-body')
+    let modalButton = document.getElementById('modal-button')
+    let modalInner = document.getElementById('modal-inner')
+
+    modalInner.className = `modal-dialog ${modalAdds}`
+    modalTitleDiv.className = `modal-header text-${styleModal}`
+    modalTitle.textContent = titleModal
+    modalBody.innerHTML = bodyModal
+    modalButton.className = `btn btn-${styleBtnModal}`
+    modalButton.textContent = btnModal
+    modalButton.onclick = btnFunction
+  
+
+    $('#modalPopup').modal('show')
 }
 
 function formatarTipo(sTipo){
@@ -431,4 +454,30 @@ function formatarTipo(sTipo){
     return nTipo
 }
 
-// SÓ 420 LINHAS CARALHO TA OTIMIZADO DEMAIS ISSO SELOCO
+function abrirModalFormDespesa(despesa){
+    // Cria um formulario igual o de busca
+    let form = new CriaForm(despesa)
+
+    // Cria o modal
+    modalPersonalizado(
+        'primary', // Estilo do titulo
+        `Editando despesa de ${despesa.descricao} (${despesa.dia}/${despesa.mes}/${despesa.ano})`, // Conteudo do titulo
+        `${form.getDivInicial().outerHTML}`, // Conteudo do body (aqui no caso é o formulario) (É passado como innerHtml)
+        'success', // Estilo do botão
+        'Salvar e fechar', // Conteudo do botão
+        'modal-lg', // Tamanho (opcional)
+        () => {
+            if (bd.editarDespesa(form.getFormDespesa(), despesa) !== false){
+                carregaListaDespesas()// Função do botão (opcional)
+            }
+        } 
+    )
+
+    document.getElementById(`dia_${despesa.id}`).value = despesa.dia
+    document.getElementById(`mes_${despesa.id}`).value = despesa.mes
+    document.getElementById(`ano_${despesa.id}`).value = despesa.ano
+    document.getElementById(`tipo_${despesa.id}`).value = formatarTipo(despesa.tipo)
+    document.getElementById(`descricao_${despesa.id}`).value = despesa.descricao
+    document.getElementById(`valor_${despesa.id}`).value = despesa.valor
+}
+// SÓ 458 LINHAS CARALHO TA OTIMIZADO DEMAIS ISSO SELOCO
