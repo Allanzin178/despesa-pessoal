@@ -1,11 +1,24 @@
 class Despesa {
     constructor(ano, mes, dia, tipo, descricao, valor){
+        let valorString = valor
+        if(valorString !== ''){
+            valorString = valorString.replace(/\.(?=\d{3}(?:[,.]?))/g, '')
+            let valorNumero = parseFloat(valorString)
+            valorString = new Intl.NumberFormat('pt-br', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                }).format(valorNumero)
+            // console.log(valorString)
+            valorString = valorString.replace(',', '.')
+            // console.log(valorString)
+            valorString = valorString.replace(/\.(?=\d{3}(?:[,.]))/g, '')
+        }
         this.ano = ano
         this.mes = mes
         this.dia = dia
         this.tipo = tipo
         this.descricao = descricao
-        this.valor = valor
+        this.valor = valorString
     }
 
     validarDados(remodal = false, antigaDespesa = null){
@@ -147,23 +160,13 @@ class FormDespesas{
     }
 
     getDespesa(){
-        let valorString = this.valor.value
-        if(valorString !== ''){
-            valorString = new Intl.NumberFormat('pt-br', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                }).format(valorString)
-            valorString = valorString.replace(',', '.')
-            valorString = valorString.replace(/\.(?=\d{3}(?:[,.]))/g, '')
-        }
-
         let despesa = new Despesa(
             this.ano.value,
             this.mes.value,
             this.dia.value,
             this.tipo.value,
             this.descricao.value,
-            valorString
+            this.valor.value
         )
         return despesa
     }
@@ -298,21 +301,13 @@ class CriaForm{
     }
 
     getFormDespesa(){
-        let valorString = document.getElementById(this.idValor).value
-        valorString = new Intl.NumberFormat('pt-br', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-            }).format(valorString)
-        valorString = valorString.replace(',', '.')
-        valorString = valorString.replace(/\.(?=\d{3}(?:[.,]))/g, "")
-
         let despesa = new Despesa(
             document.getElementById(this.idAno).value,
             document.getElementById(this.idMes).value,
             document.getElementById(this.idDia).value,
             document.getElementById(this.idTipo).value,
             document.getElementById(this.idDescricao).value,
-            valorString
+            document.getElementById(this.idValor).value
         )
         return despesa
     }
@@ -479,5 +474,15 @@ function abrirModalFormDespesa(despesa){
     document.getElementById(`tipo_${despesa.id}`).value = formatarTipo(despesa.tipo)
     document.getElementById(`descricao_${despesa.id}`).value = despesa.descricao
     document.getElementById(`valor_${despesa.id}`).value = despesa.valor
+}
+
+function criaDespesaAleatoria(){
+    // ano
+    // mes
+    // dia
+    // tipo
+    // descricao
+    // valor
+    let despesa = new Despesa()
 }
 // SÓ 458 LINHAS CARALHO TA OTIMIZADO DEMAIS ISSO SELOCO
