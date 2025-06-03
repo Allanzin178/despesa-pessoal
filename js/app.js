@@ -431,4 +431,39 @@ function formatarTipo(sTipo){
     return nTipo
 }
 
-// SÓ 420 LINHAS CARALHO TA OTIMIZADO DEMAIS ISSO SELOCO
+function carregaResumoGastos() {
+    let despesas = bd.recuperarTodosRegistros();
+    let total = 0;
+    let porCategoria = {
+        '1': 0, // Alimentação
+        '2': 0, // Educação
+        '3': 0, // Lazer
+        '4': 0, // Saúde
+        '5': 0  // Transporte
+    };
+    despesas.forEach(d => {
+        let valor = parseFloat(d.valor) || 0;
+        total += valor;
+        if (porCategoria[d.tipo] !== undefined) {
+            porCategoria[d.tipo] += valor;
+        }
+    });
+    let tipos = {
+        '1': 'Alimentação',
+        '2': 'Educação',
+        '3': 'Lazer',
+        '4': 'Saúde',
+        '5': 'Transporte'
+    };
+    let html = `<div class="card">
+        <div class="card-header bg-info text-white"><b>Resumo dos Gastos</b></div>
+        <div class="card-body">
+            <h5 class="card-title">Total gasto: <span class='text-primary'>R$ ${total.toFixed(2)}</span></h5>
+            <ul class="list-group list-group-flush mt-3">
+                ${Object.keys(porCategoria).map(k => `<li class="list-group-item d-flex justify-content-between align-items-center">${tipos[k]}<span class="badge badge-primary badge-pill">R$ ${porCategoria[k].toFixed(2)}</span></li>`).join('')}
+            </ul>
+        </div>
+    </div>`;
+    let divResumo = document.getElementById('resumoGastos');
+    if(divResumo) divResumo.innerHTML = html;
+}
