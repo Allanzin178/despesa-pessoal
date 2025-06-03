@@ -1,17 +1,13 @@
+// TODO: Dark mode na pagina
 class Despesa {
     constructor(ano, mes, dia, tipo, descricao, valor){
-        let valorString = valor
+        let valorString = valor.toString()
         if(valorString !== ''){
-            valorString = valorString.replace(/\.(?=\d{3}(?:[,.]?))/g, '')
-            let valorNumero = parseFloat(valorString)
-            valorString = new Intl.NumberFormat('pt-br', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                }).format(valorNumero)
-            // console.log(valorString)
+            
             valorString = valorString.replace(',', '.')
-            // console.log(valorString)
-            valorString = valorString.replace(/\.(?=\d{3}(?:[,.]))/g, '')
+            valorString = valorString.replace(/\.(?=\d{3}(?:[,.]?))/g, '')
+            valorString = parseFloat(valorString).toFixed(2)
+            valorString = isNaN(valorString) ? 0.0 : valorString
         }
         this.ano = ano
         this.mes = mes
@@ -325,6 +321,7 @@ function carregaListaDespesas(despesas = Array(), filtro = false){
         despesas = bd.recuperarTodosRegistros()
     }
     let listaDespesas = document.getElementById('listaDespesas')
+    if(!listaDespesas) return
     listaDespesas.innerHTML = ''
 
     despesas.forEach(despesa => {
@@ -332,18 +329,7 @@ function carregaListaDespesas(despesas = Array(), filtro = false){
 
         row.insertCell(0).textContent = `${despesa.dia}/${despesa.mes}/${despesa.ano}`
 
-        switch(despesa.tipo){
-            case '1': despesa.tipo = 'Alimentação'
-                break 
-            case '2': despesa.tipo = 'Educação'
-                break 
-            case '3': despesa.tipo = 'Lazer'
-                break 
-            case '4': despesa.tipo = 'Saúde'
-                break 
-            case '5': despesa.tipo = 'Transporte'
-                break 
-        }
+        despesa.tipo = formatarTipo(false, despesa.tipo)
 
         row.insertCell(1).textContent = despesa.descricao
         row.insertCell(2).textContent = despesa.tipo
@@ -423,30 +409,39 @@ function modalPersonalizado(styleModal = 'danger', titleModal, bodyModal, styleB
     $('#modalPopup').modal('show')
 }
 
-function formatarTipo(sTipo){
-    let nTipo
-    switch(sTipo){
-        case 'Alimentação':
-            nTipo = '1'
+function formatarTipo(sTipo = false, nTipo = false){
+    let tipo, lista, lista2, tipoFinal
+    nTipo = nTipo.toString()
+    if(sTipo){
+        lista = [ '1', '2', '3', '4', '5']
+        lista2 = [ 'Alimentação', 'Educação', 'Lazer', 'Saúde', 'Transporte']
+        tipo = sTipo
+    }else{
+        lista = [ 'Alimentação', 'Educação', 'Lazer', 'Saúde', 'Transporte']
+        lista2 = [ '1', '2', '3', '4', '5']
+        tipo = nTipo
+    }
+    switch(tipo){
+        case lista2[0]:
+            tipoFinal = lista[0] 
             break;
-        case 'Educação':
-            nTipo = '2'
+        case lista2[1]:
+            tipoFinal = lista[1] 
             break;
-        case 'Lazer':
-            nTipo = '3'
+        case lista2[2]:
+            tipoFinal = lista[2] 
             break;
-        case 'Saúde':
-            nTipo = '4'
+        case lista2[3]:
+            tipoFinal = lista[3] 
             break;
-        case 'Transporte':
-            nTipo = '5'
+        case lista2[4]:
+            tipoFinal = lista[4] 
             break;
         default:
+            tipoFinal = tipo
             break;
     }
-    // console.log('numero ' + nTipo)
-    // console.log(sTipo)
-    return nTipo
+    return tipoFinal
 }
 
 function abrirModalFormDespesa(despesa){
@@ -477,12 +472,38 @@ function abrirModalFormDespesa(despesa){
 }
 
 function criaDespesaAleatoria(){
-    // ano
-    // mes
-    // dia
-    // tipo
-    // descricao
-    // valor
-    let despesa = new Despesa()
+    // ano 2024 2025
+    let anoRandom = Math.floor(Math.random() * 2) + 2024
+    // mes 1 2 3 4 5 6 7 8 9 10 11 12
+    let mesRandom = Math.floor(Math.random() * 12) + 1
+    // dia 1 - 30
+    let diaRandom = Math.floor(Math.random() * 30) + 1
+    // tipo 1 2 3 4 5
+    let tipoRandom = Math.floor(Math.random() * 5)
+    let tipoString = formatarTipo(false, tipoRandom + 1) 
+    // descricao [ [ CS: GO, Valorant ], [ Uber, Onibus ], [ Mc Donalds, Burguer King ], [ Livro Clean Code, Mochila ], [ Plano de saúde, Remédios ] ]
+    let descricoes = [ 
+        [ 'Mc Donalds', 'Burguer King' ], 
+        [ 'Livro Clean Code', 'Mochila' ], 
+        [ 'CS: GO', 'Valorant' ], 
+        [ 'Plano de saúde', 'Remédios' ],
+        [ 'Uber', 'Onibus' ],
+    ]
+    let descricaoRandom = Math.floor(Math.random() * 2)
+    console.log(descricaoRandom)
+    // valor 1 - 200
+    let valorRandom = Math.floor(Math.random() * 200) + 1
+    let despesa = new Despesa(
+        anoRandom,
+        mesRandom,
+        diaRandom,
+        tipoString,
+        descricoes[tipoRandom][descricaoRandom],
+        valorRandom
+    )
+    console.log(despesa)
+    bd.gravar(despesa)
+    carregaListaDespesas()
 }
-// SÓ 458 LINHAS CARALHO TA OTIMIZADO DEMAIS ISSO SELOCO
+
+// SÓ 509 LINHAS CARALHO TA OTIMIZADO DEMAIS ISSO SELOCO
